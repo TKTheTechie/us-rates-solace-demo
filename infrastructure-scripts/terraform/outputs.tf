@@ -26,10 +26,3 @@ output "solace-broker-primary-private-ips" {
   value = ["${aws_instance.solace-broker-primary.*.private_ip}"]
 }
 
-#Client Nodes
-output "client-node-public-ips" {
-  value = ["${aws_instance.client-nodes.*.public_ip}"]
-}
-output "client-node-private-ips" {
-  value = ["${aws_instance.client-nodes.*.private_ip}"]
-}
