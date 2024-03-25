@@ -191,19 +191,7 @@
         vars:
           cu: "{{ item }}"
         with_items: "{{ client_usernames }}"
-#####################################################
-# Create a Loop that creates all the queues defined on the Variables File
-#####################################################
-    - name: Create Queues
-      block:
-      - name: Create all defined queues on Variables File
-        include_role:
-          name: solace/semp/create-queue
-        vars:
-          q: "{{ queue }}"
-        loop_control:
-          loop_var: queue
-        with_items: "{{ queues }}"
+
 #####################################################
 # Create a Loop that creates queue subscription to the topic for each one of the queues defined on the Variables File
 #####################################################
