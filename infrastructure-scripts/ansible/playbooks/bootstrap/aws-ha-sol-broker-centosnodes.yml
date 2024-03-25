@@ -192,20 +192,6 @@
           cu: "{{ item }}"
         with_items: "{{ client_usernames }}"
 
-#####################################################
-# Create a Loop that creates queue subscription to the topic for each one of the queues defined on the Variables File
-#####################################################
-    - name: Update Queues
-      block:
-      - name: Create all defined queues on Variables File
-        include_role:
-          name: solace/semp/create-queue-subscription
-        vars:
-          q: "{{ item.0.queueName }}"
-          subscriptionTopic: "{{ item.1 }}"
-        with_subelements:
-        - "{{ queues | selectattr('subscription_topics', 'defined') | list }}" 
-        - "subscription_topics"
 
 #####################################################
 # Create a Loop that creates all Distributed Caches defined on the Variables File
