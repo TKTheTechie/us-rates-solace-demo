@@ -45,7 +45,7 @@ variable "tag_name_prefix" {
 
 # cache nodes count
 variable "cache_nodes_count" {
-    default = "4"
+    default = "2"
     type        = string
     description = "The number of cache nodes to be created."
 }
@@ -54,16 +54,7 @@ variable "cache_vm_type" {
   #default = "c5.xlarge"    # (4 CPUs 8G RAM - General Purpose)
 }
 
-# MarketData FeedHandler & MDMonitor nodes count
-variable "client_nodes_count" {
-    default = "1"
-    type        = string
-    description = "The number of client nodes to be created."
-}
-variable "client_vm_type" {
-  default = "m5.large"    # (2 CPUs  8G RAM - General Purpose)
-  #default = "m5.xlarge"    # (4 CPUs 16G RAM - General Purpose)
-}
+
 
 # Solace Brokers
 # HA Clusters count
