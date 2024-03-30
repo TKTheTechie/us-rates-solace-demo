@@ -54,15 +54,28 @@
 		});
 	};
 
+	const sendCacheRequest = () => {
+		ConsoleLogger.log(`Sending cache request on bofa/rates/v1/${selectedBlotter.toString()}/*`);
+		solaceClient.sendCacheRequest(`bofa/rates/v1/${selectedBlotter.toString()}/*`).then(() => {
+			ConsoleLogger.log(`Received Cache Response!`);
+		}).catch((error: string) => {
+			ConsoleLogger.error(`Cache Request failed: ${error}`);
+		});
+	}
+
 	const changeBlotter = (blotter: BLOTTERS) => {
 		if (selectedBlotter != blotter) {
 			blotterEntries = {};
 			rerender = !rerender;
 			if (selectedBlotter != BLOTTERS.none && selectedBlotter != BLOTTERS.all)
-				solaceClient.unsubscribe(`bofa/rates/v1/${selectedBlotter.toString()}/>`);
+				solaceClient.unsubscribe(`bofa/rates/v1/${selectedBlotter.toString()}/*`);
 			ConsoleLogger.log(`Selected blotter: ${blotter}`);
 			if (blotter != BLOTTERS.all)
-				solaceClient.subscribe(`bofa/rates/v1/${blotter.toString()}/>`, blotterUpdate);
+				solaceClient.subscribe(`bofa/rates/v1/${blotter.toString()}/*`, blotterUpdate).then(() => {
+					ConsoleLogger.log(`Subscribed to bofa/rates/v1/${blotter.toString()}/* ...`);
+				}).catch((error: string) => {
+					ConsoleLogger.error(`Failed to subscribe to bofa/rates/v1/${blotter.toString()}/*: ${error}`);
+				});
 			else{
 				ConsoleLogger.log(`Sending request to subman on bofa/rates/v1/subman/request/${$trader_name}`);
 				solaceClient.sendSubscriptionRequest('bofa/rates/v1/subman/request/'+$trader_name,
@@ -111,11 +124,15 @@
 		</div>
 	</div>
 {:else}
+
 	<div class="flex flex-col">
 		<div class="overflow-x-auto">
 			<div
 				class="inline-block min-w-full overflow-hidden align-middle border-b border-gray-200 shadow"
 			>
+			<button class="w-full bg-green-500 hover:bg-green-400 text-white font-bold py-2 px-4 text-center rounded" on:click={sendCacheRequest}>
+				SEND CACHE REQUEST
+			</button>
 				<table class="min-w-full">
 					<thead>
 						<tr>

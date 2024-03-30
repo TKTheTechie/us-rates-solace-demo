@@ -29,6 +29,9 @@ class AsyncSolaceClient {
 	//Solace session object
 	private session: solace.Session | undefined;
 
+	//Cache Session Object
+	private cacheSession: solace.CacheSession	| undefined;
+
 	private messageConsumer: solace.MessageConsumer | undefined;
 
 	//Map that holds the topic subscription string and the associated callback function, subscription state
@@ -75,6 +78,9 @@ class AsyncSolaceClient {
 							acknowledgeMode: solace.MessagePublisherAcknowledgeMode.PER_MESSAGE
 						}
 					});
+
+					const cacheSessionProperties = new solace.CacheSessionProperties("USRates_DistributedCache");
+					this.cacheSession = this.session.createCacheSession(cacheSessionProperties);
 				} catch (error: unknown) {
 					ConsoleLogger.error(String(error));
 				}
@@ -256,7 +262,7 @@ class AsyncSolaceClient {
 	private resolveRejectDirectSubscriptionFunctions(
 		topic: string,
 		callback: (message: solace.Message) => void,
-		subcribe: boolean,
+		_subcribe: boolean,
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		correlationKey: any,
 		resolve: (value: void | PromiseLike<void>) => void,
@@ -281,7 +287,7 @@ class AsyncSolaceClient {
 			this.session.removeListener(solace.SessionEventCode.SUBSCRIPTION_OK, onAck);
 			//@ts-ignore
 			this.session.removeListener(solace.SessionEventCode.SUBSCRIPTION_ERROR, onNak);
-			reject();
+			reject(evt.infoStr);
 		};
 
 		//Add the relevant events
@@ -419,6 +425,97 @@ class AsyncSolaceClient {
 		});
 	}
 
+	sendCacheRequest(topicString: string): Promise<string> {
+		return new Promise((resolve, reject) => {
+
+			const cacheCB = new solace.CacheCBInfo((_requestID: number, result: solace.CacheRequestResult) => {
+
+				let returnCodeStr = "";
+				let returnSubCodeStr = "";
+		
+		
+				switch (result.getReturnCode()) {
+					case solace.CacheReturnCode.OK:
+						returnCodeStr = "OK";
+						break;
+					case solace.CacheReturnCode.FAIL:
+						returnCodeStr = "FAIL";
+						break;
+					case solace.CacheReturnCode.INCOMPLETE:
+						returnCodeStr = "INCOMPLETE";
+						break;
+					default:
+						returnCodeStr = "Unknown!";
+				}
+		
+				switch (result.getReturnSubcode()) {
+					case solace.CacheReturnSubcode.REQUEST_COMPLETE:
+						returnSubCodeStr = "REQUEST_COMPLETE";
+						break;
+					case solace.CacheReturnSubcode.LIVE_DATA_FULFILL:
+						returnSubCodeStr = "LIVE_DATA_FULFILL";
+						break;
+					case solace.CacheReturnSubcode.ERROR_RESPONSE:
+						returnSubCodeStr = "ERROR_RESPONSE";
+						break;
+					case solace.CacheReturnSubcode.INVALID_SESSION:
+						returnSubCodeStr = "INVALID_SESSION";
+						break;
+					case solace.CacheReturnSubcode.REQUEST_TIMEOUT:
+						returnSubCodeStr = "REQUEST_TIMEOUT";
+						break;
+					case solace.CacheReturnSubcode.REQUEST_ALREADY_IN_PROGRESS:
+						returnSubCodeStr = "REQUEST_ALREADY_IN_PROGRESS";
+						break;
+					case solace.CacheReturnSubcode.NO_DATA:
+						returnSubCodeStr = "NO_DATA";
+						break;
+					case solace.CacheReturnSubcode.SUSPECT_DATA:
+						returnSubCodeStr = "SUSPECT_DATA";
+						break;
+					case solace.CacheReturnSubcode.CACHE_SESSION_DISPOSED:
+						returnSubCodeStr = "CACHE_SESSION_DISPOSED";
+						break;
+					case solace.CacheReturnSubcode.SUBSCRIPTION_ERROR:
+						returnSubCodeStr = "SUBSCRIPTION_ERROR";
+						break;
+					default:
+						returnSubCodeStr = "Unknown";
+				}
+
+
+				if (result.getReturnCode() === solace.CacheReturnCode.OK) {
+					resolve(returnCodeStr + ":" + returnSubCodeStr)
+				} else {
+					reject(returnCodeStr + ":" + returnSubCodeStr)
+				}
+			}, this);
+			
+			if (!this.cacheSession) {
+				reject('Not connected to Solace session');
+			}
+
+			try {
+				const topic = solace.SolclientFactory.createTopicDestination(topicString);
+
+				this.cacheSession?.sendCacheRequest(1, topic, true, solace.CacheLiveDataAction.FLOW_THRU, cacheCB);
+			} catch (error) {
+				ConsoleLogger.error(String(error));
+				reject(error);
+			}
+		})
+	}
+
+
+		
+
+	/**
+	 * Send a subscription request to the subscription manager
+	 * @param topic Topic to subscribe to
+	 * @param payload Payload to send to the subscription manager
+	 * @param callback Callback function for the message
+	 */
+
 	sendSubscriptionRequest(topic: string, payload: string, callback: (message: solace.Message) => void): Promise<string> {
 		return new Promise((resolve, reject) => {
 			if (!this.session) {
@@ -438,7 +535,7 @@ class AsyncSolaceClient {
 					this.session?.sendRequest(
 						message,
 						2000,
-						(session: solace.Session, msg: solace.Message) => {
+						(_session: solace.Session, msg: solace.Message) => {
 							const blob = new Blob([msg.getBinaryAttachment() as BlobPart], {
 								type: 'text/plain; charset=utf-8'
 							});
@@ -450,7 +547,7 @@ class AsyncSolaceClient {
 								resolve(text);
 							});
 						},
-						(session: solace.Session, error: solace.RequestError) => {
+						(_session: solace.Session, error: solace.RequestError) => {
 							ConsoleLogger.error(String(error));
 							reject(error);
 						}
@@ -480,6 +577,7 @@ class AsyncSolaceClient {
 		const message = solace.SolclientFactory.createMessage();
 		message.setDestination(solace.SolclientFactory.createTopicDestination(topic));
 		binaryAttachment.then((buffer) => {
+			message.setElidingEligible(true);
 			message.setBinaryAttachment(new Uint8Array(buffer));
 			message.setDeliveryMode(solace.MessageDeliveryModeType.DIRECT);
 			try {
@@ -536,14 +634,13 @@ class AsyncSolaceClient {
 			//Check if the session has been established
 			if (!this.session) {
 				ConsoleLogger.error('Cannot subscribe because not connected to Solace message router!');
-				reject();
+				reject('Not connected to Solace message router.');
 			}
 			//Check if the subscription already exists
 			if (this.topicSubscriptions.get(topicSubscription)) {
 				ConsoleLogger.warn(`Already subscribed to ${topicSubscription}.`);
-				reject();
+				reject('Already subscribed!');
 			}
-			ConsoleLogger.log(`Subscribing to ${topicSubscription}`);
 			const correlationKey = uuidv4();
 
 			this.resolveRejectDirectSubscriptionFunctions(

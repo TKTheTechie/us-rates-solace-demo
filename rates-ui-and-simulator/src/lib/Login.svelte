@@ -2,10 +2,10 @@
 	import solaceClient from './SolaceClient';
 	import { ConsoleLogger, loggedIn, trader_name } from './lib';
 
-	let solace_host = 'ws://localhost:8008',
-		solace_vpn = 'default',
-		solace_username = 'default',
-		solace_password = 'default';
+	let solace_host = 'ws://52.91.198.51:8008',
+		solace_vpn = 'GlobalRatesVPN',
+		solace_username = 'BillTrader',
+		solace_password = 'admin';
 
 	const login = () => {
 		solaceClient

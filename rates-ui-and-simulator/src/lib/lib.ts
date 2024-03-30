@@ -46,6 +46,3 @@ export interface SecurityInfo {
 	yield: number;
 }
 
-export interface SubManResponse {
-	subscriptions: string[];
-}
