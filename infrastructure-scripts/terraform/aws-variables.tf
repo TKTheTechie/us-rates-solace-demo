@@ -34,7 +34,7 @@ variable "tag_owner" {
   default = "psdefault"
 }
 variable "tag_days" {
-  default = "1"
+  default = "5"
 }
 variable "tag_purpose" {
   default = "General PubSub+ Cache Testing"
