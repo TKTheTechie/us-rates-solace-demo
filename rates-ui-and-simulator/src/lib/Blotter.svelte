@@ -55,8 +55,12 @@
 	};
 
 	const sendCacheRequest = () => {
-		ConsoleLogger.log(`Sending cache request on bofa/rates/v1/${selectedBlotter.toString()}/*`);
-		solaceClient.sendCacheRequest(`bofa/rates/v1/${selectedBlotter.toString()}/*`).then(() => {
+		let cacheRequestInstrumentString=selectedBlotter.toString();
+		if(selectedBlotter == BLOTTERS.all)
+			cacheRequestInstrumentString = 'bond';
+
+		ConsoleLogger.log(`Sending cache request on bofa/rates/v1/${cacheRequestInstrumentString}/*`);
+		solaceClient.sendCacheRequest(`bofa/rates/v1/${cacheRequestInstrumentString}/*`).then(() => {
 			ConsoleLogger.log(`Received Cache Response!`);
 		}).catch((error: string) => {
 			ConsoleLogger.error(`Cache Request failed: ${error}`);
@@ -64,6 +68,7 @@
 	}
 
 	const changeBlotter = (blotter: BLOTTERS) => {
+
 		if (selectedBlotter != blotter) {
 			blotterEntries = {};
 			rerender = !rerender;

@@ -75,8 +75,9 @@ class AsyncSolaceClient {
 						connectRetries: 3,
 						publisherProperties: {
 							enabled: true,
-							acknowledgeMode: solace.MessagePublisherAcknowledgeMode.PER_MESSAGE
-						}
+							acknowledgeMode: solace.MessagePublisherAcknowledgeMode.PER_MESSAGE,
+						},
+			
 					});
 
 					const cacheSessionProperties = new solace.CacheSessionProperties("USRates_DistributedCache");
@@ -498,7 +499,7 @@ class AsyncSolaceClient {
 			try {
 				const topic = solace.SolclientFactory.createTopicDestination(topicString);
 
-				this.cacheSession?.sendCacheRequest(1, topic, true, solace.CacheLiveDataAction.FLOW_THRU, cacheCB);
+				this.cacheSession?.sendCacheRequest(1, topic, false, solace.CacheLiveDataAction.FLOW_THRU, cacheCB);
 			} catch (error) {
 				ConsoleLogger.error(String(error));
 				reject(error);
