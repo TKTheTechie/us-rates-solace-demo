@@ -13,7 +13,7 @@ The following image is a high level overview of the PS+ Cache configurations to 
   - USRates_CacheCluster - to store all the market data
 + 2 Cache Instances "PS_CacheInstance_X" - 2 Instances per Cache Cluster (in order to achieve HA within a Cache Cluster)
 
-![PS+ Cache Topology](/images/topology.png)
+![PS+ Cache Topology](images/topology.png)
 
 ### Warnings
 
